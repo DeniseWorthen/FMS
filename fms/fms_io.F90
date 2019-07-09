@@ -124,7 +124,7 @@ use mpp_mod,         only: mpp_error, FATAL, NOTE, WARNING, mpp_pe, mpp_root_pe,
 use mpp_mod,         only: mpp_broadcast, ALL_PES, mpp_chksum, mpp_get_current_pelist, mpp_npes, lowercase
 use mpp_mod,         only: input_nml_file, mpp_get_current_pelist_name, uppercase
 use mpp_mod,         only: mpp_gather, mpp_scatter, mpp_send, mpp_recv, mpp_sync_self, COMM_TAG_1, EVENT_RECV
-use mpp_mod,         only: MPP_FILL_DOUBLE,MPP_FILL_INT
+use mpp_mod,         only: MPP_FILL_DOUBLE,MPP_FILL_FLOAT,MPP_FILL_INT
 
 use platform_mod, only: r8_kind
 
@@ -1732,6 +1732,7 @@ function register_restart_field_r2d8(fileObj, filename, fieldname, data, domain,
   if(.not.module_is_initialized) call mpp_error(FATAL,'fms_io(register_restart_field_r2d8): need to call fms_io_init')
   is_compressed = .false.
   if(present(compressed)) is_compressed=compressed
+  data_default_r4 = MPP_FILL_FLOAT
   if(present(data_default)) data_default_r4=data_default
   call setup_one_field(fileObj, filename, fieldname, (/size(data,1), size(data,2), 1, 1/), &
                        index_field, domain, mandatory, no_domain, is_compressed, &
@@ -1772,6 +1773,7 @@ function register_restart_field_r3d8(fileObj, filename, fieldname, data, domain,
   if(.not.module_is_initialized) call mpp_error(FATAL,'fms_io(register_restart_field_r3d8): need to call fms_io_init')
   is_compressed = .false.
   if(present(compressed)) is_compressed=compressed
+  data_default_r4 = MPP_FILL_FLOAT
   if(present(data_default)) data_default_r4=data_default
   call setup_one_field(fileObj, filename, fieldname, (/size(data,1), size(data,2), size(data,3), 1/), &
                        index_field, domain, mandatory, no_domain, is_compressed, &

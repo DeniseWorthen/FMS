@@ -535,7 +535,7 @@ private
 
 ! The default values below preserve the behavior of omsk and earlier revisions.
  logical :: show_bad_value_count_by_slice=.true.
- logical :: show_all_bad_values=.false.
+ logical :: show_all_bad_values=.true.
  logical :: use_exact_qs = .false.
  logical :: do_simple             =.false.
  logical :: construct_table_wrt_liq = .false.
@@ -2537,7 +2537,8 @@ subroutine show_all_bad_0d ( temp )
  do i=1,size(temp,1)
    ind = int(dtinv*(temp(i,j)-tmin+teps))
    if (ind < 0 .or. ind > nlim) then
-     write(unit,'(a,e10.3,a,i4,a,i4,a,i6)') 'Bad temperature=',temp(i,j),'  at i=',i,' j=',j,' pe=',mpp_pe()
+     !write(unit,'(a,e10.3,a,i4,a,i4,a,i6)') 'Bad temperature=',temp(i,j),'  at i=',i,' j=',j,' pe=',mpp_pe()
+     write(6,'(a,e10.3,a,i4,a,i4,a,i6)') 'Bad temperature=',temp(i,j),'  at i=',i,' j=',j,' pe=',mpp_pe()
    endif
  enddo
  enddo

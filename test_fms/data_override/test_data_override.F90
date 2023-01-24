@@ -39,15 +39,16 @@
 ! "LND", "sst_obs",  "SST", "INPUT/sst_ice_clim.nc", .false., 300.0
 !--------------------------------------------------------------------------------------------------
 
- program test
+program test
 
- ! Input data and path_names file for this program is in:
- ! /archive/pjp/unit_tests/test_data_override/lima/exp1
-
+  ! Input data and path_names file for this program is in:
+  ! /archive/pjp/unit_tests/test_data_override/lima/exp1
  use           mpp_mod, only: input_nml_file, stdout, mpp_chksum
- use   mpp_domains_mod, only: domain2d, mpp_define_domains, mpp_get_compute_domain, mpp_define_layout
- use           fms_mod, only: fms_init, fms_end, mpp_npes, file_exist, open_namelist_file, check_nml_error, close_file
+ use   mpp_domains_mod, only: domain2d, mpp_define_domains, mpp_define_io_domain, mpp_get_compute_domain, &
+                           &  mpp_define_layout
+ use           fms_mod, only: fms_init, fms_end, mpp_npes, file_exist, check_nml_error
  use           fms_mod, only: error_mesg, FATAL, file_exist, field_exist, field_size
+ use  fms_affinity_mod, only: fms_affinity_set
  use        fms_io_mod, only: read_data, fms_io_exit
  use     constants_mod, only: constants_init, pi
  use  time_manager_mod, only: time_type, set_calendar_type, set_date, NOLEAP, JULIAN, operator(+), set_time, print_time
@@ -55,7 +56,7 @@
  use  diag_manager_mod, only: send_data, diag_axis_init
  use data_override_mod, only: data_override_init, data_override, data_override_UG
   use mpp_mod,         only : FATAL, WARNING, MPP_DEBUG, NOTE, MPP_CLOCK_SYNC,MPP_CLOCK_DETAILED
-  use mpp_mod,         only : mpp_pe, mpp_npes, mpp_node, mpp_root_pe, mpp_error, mpp_set_warn_level
+  use mpp_mod,         only : mpp_pe, mpp_npes, mpp_root_pe, mpp_error, mpp_set_warn_level
   use mpp_mod,         only : mpp_declare_pelist, mpp_set_current_pelist, mpp_sync, mpp_sync_self
   use mpp_mod,         only : mpp_clock_begin, mpp_clock_end, mpp_clock_id
   use mpp_mod,         only : mpp_init, mpp_exit, mpp_chksum, stdout, stderr
@@ -87,12 +88,12 @@
   use mpp_domains_mod, only : mpp_get_UG_compute_domain, mpp_pass_SG_to_UG, mpp_pass_UG_to_SG
   use mpp_domains_mod, only : mpp_get_ug_global_domain, mpp_global_field_ug
   use mpp_memutils_mod, only : mpp_memuse_begin, mpp_memuse_end
-#include "fms_platform.h"
+  use platform_mod
+
  implicit none
 
  integer                           :: stdoutunit
  integer                           :: num_threads = 1
- integer                           :: omp_get_thread_num
  integer                           :: isw, iew, jsw, jew
  integer, allocatable              :: is_win(:), js_win(:)
  integer                           :: nx_dom, ny_dom, nx_win, ny_win
@@ -102,7 +103,7 @@
  real, allocatable, dimension(:,:) :: lon, lat
  real, allocatable, dimension(:,:) :: sst, ice
  integer                           :: id_x, id_y, id_lon, id_lat, id_sst, id_ice
- integer                           :: i, j, is, ie, js, je, unit, io, ierr, n
+ integer                           :: i, j, is, ie, js, je, io, ierr, n
  real                              :: rad_to_deg
  character(len=36)                 :: message
  type(time_type)                   :: Time
@@ -112,7 +113,6 @@
  character(len=256)                :: solo_mosaic_file, tile_file
  character(len=128)                :: grid_file   = "INPUT/grid_spec.nc"
  integer                           :: window(2) = (/1,1/)
- integer                           :: get_cpu_affinity, base_cpu
  integer                           :: nthreads=1
  integer                           :: nwindows
  integer                           :: nx_cubic=90, ny_cubic=90, nx_latlon=90, ny_latlon=90
@@ -124,22 +124,12 @@
  call set_calendar_type(NOLEAP)
  call diag_manager_init
 
+ call mpp_domains_set_stack_size(800000)
+
  rad_to_deg = 180./pi
 
-#ifdef INTERNAL_FILE_NML
-      read (input_nml_file, test_data_override_nml, iostat=io)
-      ierr = check_nml_error(io, 'test_data_override_nml')
-#else
- if (file_exist('input.nml')) then
-   unit = open_namelist_file ( )
-   ierr=1
-   do while (ierr /= 0)
-     read(unit, nml=test_data_override_nml, iostat=io, end=10)
-          ierr = check_nml_error(io, 'test_data_override_nml')
-   enddo
-10 call close_file (unit)
- endif
-#endif
+ read (input_nml_file, test_data_override_nml, iostat=io)
+ ierr = check_nml_error(io, 'test_data_override_nml')
 
  if(field_exist(grid_file, "x_T" ) ) then
     call field_size(grid_file, 'x_T', siz)
@@ -153,7 +143,8 @@
     call read_data(grid_file, 'ocn_mosaic_file', solo_mosaic_file)
     solo_mosaic_file = 'INPUT/'//trim(solo_mosaic_file)
     call field_size(solo_mosaic_file, 'gridfiles', siz)
-    if( siz(2) .NE. 1) call error_mesg('test_data_override', 'only support single tile mosaic, contact developer', FATAL)
+    if( siz(2) .NE. 1) &
+       call error_mesg('test_data_override', 'only support single tile mosaic, contact developer', FATAL)
     call read_data(solo_mosaic_file, 'gridfiles', tile_file)
     tile_file = 'INPUT/'//trim(tile_file)
     call field_size(tile_file, 'area', siz)
@@ -171,6 +162,7 @@
 
 
  call mpp_define_domains( (/1,nlon,1,nlat/), layout, Domain, name='test_data_override')
+ call mpp_define_io_domain(Domain, (/1,1/))
  call data_override_init(Ice_domain_in=Domain, Ocean_domain_in=Domain)
  call data_override_init(Ice_domain_in=Domain, Ocean_domain_in=Domain)
  call mpp_get_compute_domain(Domain, is, ie, js, je)
@@ -217,10 +209,9 @@ if( mod( ny_dom, window(2) ) .NE. 0 ) call error_mesg('test_data_override', &
 
 nwindows = window(1)*window(2)
 !$ call omp_set_num_threads(nthreads)
-!$ base_cpu = get_cpu_affinity()
-!$OMP PARALLEL
-!$ call set_cpu_affinity( base_cpu + omp_get_thread_num() )
-!$OMP END PARALLEL
+!!$OMP PARALLEL
+!!$ call fms_affinity_set("test_data_override", .FALSE., omp_get_num_threads() )
+!!$OMP END PARALLEL
 
 nx_win = nx_dom/window(1)
 ny_win = ny_dom/window(2)
@@ -320,7 +311,7 @@ enddo
 
 contains
 
-!=================================================================================================================================
+!======================================================================================================================
  subroutine get_grid
    real, allocatable, dimension(:,:,:) :: lon_vert_glo, lat_vert_glo
    real, allocatable, dimension(:,:)   :: lon_global, lat_global
@@ -395,7 +386,6 @@ contains
 
   integer :: pe, npes
   integer :: nx, ny, nz=40, stackmax=4000000
-  integer :: unit=7
   integer :: stdunit = 6
   logical :: debug=.FALSE., opened
 
@@ -454,7 +444,8 @@ contains
           write(outunit,*)'NOTE from test_unstruct_update ==> For Mosaic "', trim(type), &
                '", each tile will be distributed over ', npes_per_tile, ' processors.'
        else
-          call mpp_error(NOTE,'test_unstruct_update: npes should be multiple of ntiles No test is done for '//trim(type))
+          call mpp_error(NOTE,'test_unstruct_update: npes should be multiple of ntiles No test is done for '// &
+                         & trim(type))
           return
        endif
        if(layout_cubic(1)*layout_cubic(2) == npes_per_tile) then
@@ -546,7 +537,8 @@ contains
     allocate(ntiles_grid(ntotal_land))
     ntiles_grid = 1
    !--- define the unstructured grid domain
-    call mpp_define_unstruct_domain(UG_domain, SG_domain, npts_tile, ntiles_grid, mpp_npes(), 1, grid_index, name="LAND unstruct")
+    call mpp_define_unstruct_domain(UG_domain, SG_domain, npts_tile, ntiles_grid, mpp_npes(), 1, grid_index, &
+                                   &  name="LAND unstruct")
     call mpp_get_UG_compute_domain(UG_domain, istart, iend)
 
     !--- figure out lmask according to grid_index
@@ -663,7 +655,7 @@ contains
   subroutine compare_checksums( a, b, string )
     real, intent(in), dimension(:,:,:) :: a, b
     character(len=*), intent(in) :: string
-    integer(LONG_KIND) :: sum1, sum2
+    integer(i8_kind) :: sum1, sum2
     integer :: i, j, k,pe
 
     ! z1l can not call mpp_sync here since there might be different number of tiles on each pe.
@@ -708,7 +700,7 @@ contains
   subroutine compare_checksums_2D( a, b, string )
     real, intent(in), dimension(:,:) :: a, b
     character(len=*), intent(in) :: string
-    integer(LONG_KIND) :: sum1, sum2
+    integer(i8_kind) :: sum1, sum2
     integer :: i, j,pe
 
     ! z1l can not call mpp_sync here since there might be different number of tiles on each pe.
@@ -832,5 +824,5 @@ contains
 
   end subroutine define_cubic_mosaic
 
-!=================================================================================================================================
+!======================================================================================================================
  end program test

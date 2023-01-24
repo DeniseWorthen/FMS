@@ -1,35 +1,49 @@
-# This is an automake file for the test_fms/data_override directory of the FMS
-# package.
+#***********************************************************************
+#*                   GNU Lesser General Public License
+#*
+#* This file is part of the GFDL Flexible Modeling System (FMS).
+#*
+#* FMS is free software: you can redistribute it and/or modify it under
+#* the terms of the GNU Lesser General Public License as published by
+#* the Free Software Foundation, either version 3 of the License, or (at
+#* your option) any later version.
+#*
+#* FMS is distributed in the hope that it will be useful, but WITHOUT
+#* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#* FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#* for more details.
+#*
+#* You should have received a copy of the GNU Lesser General Public
+#* License along with FMS.  If not, see <http://www.gnu.org/licenses/>.
+#***********************************************************************
+
+# This is an automake file for the test_fms/horiz_interp directory of
+# the FMS package.
 
 # uramirez, Ed Hartnett
 
-LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
-             $(top_srcdir)/tap-driver.sh
-
-# Set srcdir as evironment variable to be reference in the job script
-TESTS_ENVIRONMENT = srcdir="$(top_srcdir)"
-
 # Find the needed mod files.
-AM_CPPFLAGS = -I${top_builddir}/horiz_interp -I${top_builddir}/fms \
--I${top_builddir}/constants -I${top_builddir}/mpp \
--I${top_builddir}/mosaic -I${top_builddir}/axis_utils
+AM_CPPFLAGS = -I$(MODDIR)
 
 # Link to the FMS library.
-LDADD = ${top_builddir}/libFMS/libFMS.la
+LDADD = $(top_builddir)/libFMS/libFMS.la
 
 # Build these test programs.
-check_PROGRAMS = test_horiz_interp test2_horiz_interp
+check_PROGRAMS = test_horiz_interp
 
 # These are the sources for the tests.
 test_horiz_interp_SOURCES = test_horiz_interp.F90
-test2_horiz_interp_SOURCES = test2_horiz_interp.F90
+
+TEST_EXTENSIONS = .sh
+SH_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
+                  $(abs_top_srcdir)/test_fms/tap-driver.sh
+TESTS_ENVIRONMENT= test_input_path="@TEST_INPUT_PATH@"
 
 # Run the test programs.
-TESTS = test_horiz_interp.sh test2_horiz_interp.sh
+TESTS = test_horiz_interp2.sh
 
 # These files will also be included in the distribution.
-EXTRA_DIST = test_horiz_interp.sh test_horiz_interp.bats \
-test2_horiz_interp.sh test2_horiz_interp.bats input_base.nml
+EXTRA_DIST = test_horiz_interp2.sh
 
 # Clean up
-CLEANFILES = input.nml *.out*
+CLEANFILES = input.nml *.out* *.dpi *.spi *.dyn *.spl

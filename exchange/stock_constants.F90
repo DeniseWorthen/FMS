@@ -16,7 +16,12 @@
 !* You should have received a copy of the GNU Lesser General Public
 !* License along with FMS.  If not, see <http://www.gnu.org/licenses/>.
 !***********************************************************************
+!> @defgroup stock_constants_mod stock_constants_mod
+!> @ingroup exchange
+!> @brief Parameters, routines, and types for computing stocks in @ref xgrid_mod
 
+!> @addtogroup stock_constants_mod
+!> @{
 module stock_constants_mod
 
   use mpp_mod, only : mpp_pe, mpp_root_pe, mpp_sum
@@ -39,20 +44,25 @@ module stock_constants_mod
   ! Shallow (no constructor) data structures holding the starting stock values (per PE) and
   ! flux integrated increments at present time.
 
-  integer, parameter :: NSIDES  = 3         ! top, bottom, side
+  integer, parameter :: NSIDES  = 3         !< top, bottom, side
+  !> @}
 
-  type stock_type ! per PE values
-     real  :: q_start = 0.0    ! total stocks at start time
-     real  :: q_now   = 0.0    ! total stocks at time t
+  !> @brief Holds stocks amounts per PE values
+  !> @ingroup stock_constants_mod
+  type stock_type
+     real  :: q_start = 0.0    !< total stocks at start time
+     real  :: q_now   = 0.0    !< total stocks at time t
 
      ! The dq's below are the stocks increments at the present time
      ! delta_t * surf integr of flux
      ! one for each side (ISTOCK_TOP, ISTOCK_BOTTOM, ISTOCK_SIDE)
-     real  :: dq(NSIDES)    = 0.0    ! stock increments at present time on the Ice   grid
-     real  :: dq_IN(NSIDES) = 0.0    ! stock increments at present time on the Ocean grid
+     real  :: dq(NSIDES)    = 0.0    !< stock increments at present time on the Ice   grid
+     real  :: dq_IN(NSIDES) = 0.0    !< stock increments at present time on the Ocean grid
   end type stock_type
+  !> @addtogroup stock_constants_mod
+  !> @{
 
-  type(stock_type), save, dimension(NELEMS) :: Atm_stock, Ocn_stock, Lnd_stock, Ice_stock
+  type(stock_type), save, public, dimension(NELEMS) :: Atm_stock, Ocn_stock, Lnd_stock, Ice_stock
   type(time_type), save :: init_time
 
   public stocks_report
@@ -70,9 +80,9 @@ module stock_constants_mod
 
 contains
 
-
+    !> Starts a stock report
     subroutine stocks_report_init(Time)
-    type(time_type)               , intent(in) :: Time
+    type(time_type)               , intent(in) :: Time !< Model time
 
     character(len=80) :: formatString,space
     integer :: i,s
@@ -155,20 +165,20 @@ contains
 
   end subroutine stocks_report_init
 
-
+  !> Writes update to stock report
   subroutine stocks_report(Time)
-    type(time_type)               , intent(in) :: Time
+    type(time_type)               , intent(in) :: Time !< Model time
 
-    type(time_type) :: timeSinceStart
     type(stock_type) :: stck
     real, dimension(NCOMPS) :: f_value, f_ice_grid, f_ocn_grid, f_ocn_btf, q_start, q_now,c_value
     character(len=80) :: formatString
     integer :: iday0, isec0, iday, isec, hours
     real    :: days
     integer :: diagID , comp,elem,i
-    integer, parameter :: initID = -2 ! initial value for diag IDs. Must not be equal to the value
-    ! that register_diag_field returns when it can't register the filed -- otherwise the registration
-    ! is attempted every time this subroutine is called
+    integer, parameter :: initID = -2 !< initial value for diag IDs. Must not be equal to the value
+                                      !! that register_diag_field returns when it can't register
+                                      !! the filed -- otherwise the registration
+                                      !! is attempted every time this subroutine is called
 
     integer, dimension(NCOMPS,NELEMS), save :: f_valueDiagID = initID
     integer, dimension(NCOMPS,NELEMS), save :: c_valueDiagID = initID
@@ -273,10 +283,11 @@ contains
              if (DiagID > 0)  used = send_data(DiagID, diagField, Time)
 
 
-             !             formatString = '(a,a,a,i16,2x,es22.15,2x,es22.15,2x,es22.15,2x,es22.15,2x,es22.15,2x,es22.15)'
+             ! formatString = '(a,a,a,i16,2x,es22.15,2x,es22.15,2x,es22.15,2x,es22.15,2x,es22.15,2x,es22.15)'
              !
              !             write(stocks_file,formatString) trim(COMP_NAMES(comp)),STOCK_NAMES(elem),STOCK_UNITS(elem) &
-             !                  ,hours, q_now, q_now-q_start, f_value, f_value - (q_now - q_start), (f_value - (q_now - q_start))/q_start
+             !                  ,hours, q_now, q_now-q_start, f_value, f_value - (q_now - q_start),
+             !                  (f_value - (q_now - q_start))/q_start
 
 
           endif
@@ -289,9 +300,11 @@ contains
 !          write(stocks_file,'(a)'  )   ' '!blank line
 !          write(stocks_file,'(a,30x,a,20x,a,20x,a,20x,a)') 'Component ','ATM','LND','ICE','OCN'
 !          write(stocks_file,'(55x,a,20x,a,20x,a,20x,a)')  'ATM','LND','ICE','OCN'
-!          write(stocks_file,'(a,f12.3,12x,a,20x,a,20x,a,20x,a)') 't = TimeSinceStart[days]= ',days,'ATM','LND','ICE','OCN'
+!          write(stocks_file,'(a,f12.3,12x,a,20x,a,20x,a,20x,a)') 't = TimeSinceStart[days]=
+!          ',days,'ATM','LND','ICE','OCN'
 
-          write(stocks_file,'(a,a,40x,a,20x,a,20x,a,20x,a)') 'Stocks of ',trim(STOCK_NAMES(elem)),'ATM','LND','ICE','OCN'
+          write(stocks_file,'(a,a,40x,a,20x,a,20x,a,20x,a)') 'Stocks of ',trim(STOCK_NAMES(elem)),'ATM','LND', &
+               & 'ICE','OCN'
           formatString = '(a,a,2x,es22.15,2x,es22.15,2x,es22.15,2x,es22.15)'
 
           write(stocks_file,formatString) 'Total =S(t)               ',STOCK_UNITS(elem),&
@@ -303,12 +316,13 @@ contains
           write(stocks_file,formatString) 'Diff  =F(t) - (S(t)-S(0)) ',STOCK_UNITS(elem),&
                ( f_value(i) - c_value(i), i=1,NCOMPS)
           write(stocks_file,formatString) 'Error =Diff/S(0)          ','[NonDim]    ', &
-               ((f_value(i) - c_value(i))/(1+q_start(i)), i=1,NCOMPS)  !added 1 to avoid div by zero. Assuming q_start large
+               ((f_value(i) - c_value(i))/(1+q_start(i)), i=1,NCOMPS)  !added 1 to avoid div by zero.
+                                                                       !! Assuming q_start large
 
           write(stocks_file,'(a)'  ) ' '!blank line
           formatString = '(a,a,a,6x,es22.15)'
-          write(stocks_file,formatString) 'Lost Stocks in the exchange between Ice and Ocean ',trim(STOCK_NAMES(elem)),trim(STOCK_UNITS(elem)),  &
-               f_ice_grid(ISTOCK_OCN) - f_ocn_grid(ISTOCK_OCN) + f_ocn_btf(ISTOCK_OCN)
+          write(stocks_file,formatString) 'Lost Stocks in the exchange between Ice and Ocean ',trim(STOCK_NAMES(elem))&
+                     &,trim(STOCK_UNITS(elem)), f_ice_grid(ISTOCK_OCN) - f_ocn_grid(ISTOCK_OCN) + f_ocn_btf(ISTOCK_OCN)
 
           write(stocks_file,'(a)') ' ' !blank line
           write(stocks_file,'(a)') ' ' !blank line
@@ -319,9 +333,11 @@ contains
   end subroutine stocks_report
 
   subroutine stocks_set_init_time(Time)
-    type(time_type)     , intent(in) :: Time
+    type(time_type)     , intent(in) :: Time !< init time to set for stock report
     init_time = Time
 
   end subroutine stocks_set_init_time
 
 end module stock_constants_mod
+!> @}
+! close documentation grouping

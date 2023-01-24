@@ -16,17 +16,16 @@
 !* You should have received a copy of the GNU Lesser General Public
 !* License along with FMS.  If not, see <http://www.gnu.org/licenses/>.
 !***********************************************************************
-
-!> \author Richard Slater <Richard.Slater@noaa.gov>
-!! \author John Dunne <John.Dunne@noaa.gov>
-!!
-!! \brief Ocean Carbon Model Intercomparison Study II: Gas exchange coupler.
-!! Implementation of routines to solve the gas fluxes at the
+!> @defgroup atmos_ocean_fluxes_mod atmos_ocean_fluxes_mod
+!> @ingroup coupler
+!> @brief Implementation of routines to solve the gas fluxes at the
 !! ocean surface for a coupled model as outlined in the Biotic-HOWTO
-!! documentation, revision 1.7, 1999/10/05.
+!! documentation below, revision 1.7, 1999/10/05.
 !!
-!! http://ocmip5.ipsl.fr/documentation/OCMIP/phase2/simulations/Biotic/HOWTO-Biotic.html
-!
+!> @author Richard Slater, John Dunne
+!!
+!! Ocean Carbon Model Intercomparison Study II: Gas exchange coupler.
+!!
 !! This module will take fields from an atmospheric and an
 !! oceanic model and calculate ocean surface fluxes for
 !! CO2, O2, CFC-11 or CFC-12 as outlined in the various
@@ -35,6 +34,11 @@
 !! surface fluxes. Additionally, data may be overridden at
 !! the individual fields, or fluxes. This could be used in
 !! the absence of an atmospheric or oceanic model.
+!!
+!! http://ocmip5.ipsl.fr/documentation/OCMIP/phase2/simulations/Biotic/HOWTO-Biotic.html
+
+!> @addtogroup atmos_ocean_fluxes_mod
+!> @{
 module  atmos_ocean_fluxes_mod
   use mpp_mod,           only: stdout, mpp_error, FATAL, mpp_sum, mpp_npes
   use fms_mod,           only: write_version_number
@@ -77,31 +81,36 @@ module  atmos_ocean_fluxes_mod
 
 contains
 
-  !> \brief Set the values for a coupler flux and return its index (0 on error)
-  !
-  !! \throw FATAL, "Empty name given"
+  !> @brief Set the values for a coupler flux
+  !! @return its index (0 on error)
+  !! @throw FATAL, "Empty name given"
   !!     Name is empty
-  !! \throw FATAL, "Could not get coupler flux"
+  !! @throw FATAL, "Could not get coupler flux"
   !!     coupler_index is less than 1
-  !! \throw FATAL, "Could not set coupler flux"
+  !! @throw FATAL, "Could not set coupler flux"
   !!     coupler_index is less than 1
-  !! \throw FATAL, "Could not get the current list"
+  !! @throw FATAL, "Could not get the current list"
   !!     Current list is empty
-  !! \throw FATAL, "Could not change to the new list"
+  !! @throw FATAL, "Could not change to the new list"
   !!     fm_change_list(coupler_list) returns false
-  !! \throw FATAL, "Blank flux_type given"
+  !! @throw FATAL, "Blank flux_type given"
   !!     flux_type or implementation is empty
-  !! \throw FATAL, "Undefined flux_type given from field_table"
-  !! \throw FATAL, "Undefined flux_type given as argument to the subroutine"
-  !! \throw FATAL, "Undefined flux_type/implementation (implementation given from field_table)"
+  !! @throw FATAL, "Undefined flux_type given from field_table"
   !!     flux_type does not equal flux_type_test
-  !! \throw FATAL, "Undefined flux_type/implementation (flux_type given from field_table)"
-  !! \throw FATAL, "Undefined flux_type/implementation (both given from field_table)"
-  !! \throw FATAL, "Undefined flux_type/implementation given as argument to the subroutine"
-  !! \throw NOTE, "Number of parameters provided for [variable] does not match the number of parameters required"
+  !! @throw FATAL, "Undefined flux_type given as argument to the subroutine"
+  !!     flux_type does not equal flux_type_test
+  !! @throw FATAL, "Undefined flux_type/implementation (implementation given from field_table)"
+  !!     flux_type does not equal flux_type_test
+  !! @throw FATAL, "Undefined flux_type/implementation (flux_type given from field_table)"
+  !!     flux_type does not equal flux_type_test
+  !! @throw FATAL, "Undefined flux_type/implementation (both given from field_table)"
+  !!     flux_type does not equal flux_type_test
+  !! @throw FATAL, "Undefined flux_type/implementation given as argument to the subroutine"
+  !!     flux_type does not equal flux_type_test
+  !! @throw NOTE, "Number of parameters provided for [variable] does not match the number of parameters required"
   !!     Mismatch between parameter input and the parameters being replaced
-  !! \throw FATAL, "Could not change back to [current_list]"
-  !! \throw FATAL, "Empty [name] list"
+  !! @throw FATAL, "Could not change back to [current_list]"
+  !! @throw FATAL, "Empty [name] list"
   function aof_set_coupler_flux(name, flux_type, implementation, atm_tr_index, param, flag,&
       & mol_wt, ice_restart_file, ocean_restart_file, units, caller, verbosity) &
       & result (coupler_index)
@@ -137,7 +146,7 @@ contains
     character(len=128)                                      :: caller_str
     character(len=fm_string_len), pointer, dimension(:)     :: good_list => NULL()
     character(len=256)                                      :: long_err_msg
-    integer :: verbose ! An integer indicating the level of verbosity.
+    integer :: verbose !< An integer indicating the level of verbosity.
 
     verbose = 5 ! Default verbosity level
     if (present(verbosity)) verbose = verbosity
@@ -250,7 +259,8 @@ contains
         ! Check that the flux_type/implementation that we will use
         ! (both possibly given from the field_table) is defined
         implementation_test = fm_util_get_string('implementation', scalar = .true.)
-        if (.not. fm_exists('/coupler_mod/types/' // trim(flux_type_test) //  '/implementation/' // trim(implementation_test))) then
+        if (.not. fm_exists('/coupler_mod/types/' // trim(flux_type_test) //  '/implementation/' // &
+        &  trim(implementation_test))) then
           if (flux_type .eq. flux_type_test) then
             if (implementation .eq. implementation_test) then
               call mpp_error(FATAL, trim(error_header) // ' Should not get here, as it is tested for above')
@@ -390,30 +400,30 @@ contains
     return
   end function aof_set_coupler_flux
 
-  !> \brief Initialize gas flux structures
-  !
-  !! \throw FATAL, "Could not get number of fluxes"
+  !> @brief Initialize gas flux structures
+  !! @throw FATAL, "Could not get number of fluxes"
   !!     Number of gas fluxes is not a valid number
-  !! \throw NOTE, "No gas fluxes"
+  !! @throw NOTE, "No gas fluxes"
   !!     No gas fluxes were found
-  !! \throw NOTE, "Processing [gas_fluxes%num_bcs] gas fluxes"
+  !! @throw NOTE, "Processing [gas_fluxes%num_bcs] gas fluxes"
   !!     Gas fluxes were found
-  !! \throw FATAL, "[name] is not a list"
+  !! @throw FATAL, "[name] is not a list"
   !!     name needs to be a list, or typ is incorrectly defined
-  !! \throw FATAL, "Flux index, [ind] does not match array index, [n] for [name]"
-  !! \throw FATAL, "Problem changing to [name]"
-  !! \throw FATAL, "Undefined flux_type given for [name]: [gas_fluxes%bc(n)%flux_type]"
-  !! \throw FATAL, "Undefined implementation given for [name]: [gas_fluxes%bc(n)%flux_type]/implementation/[gas_fluxes%bc(n)%implementation]"
-  !! \throw FATAL, "No param for [name]: need [num_parameters]"
-  !! \throw FATAL, "Wrong number of param for [name]: [size(gas_fluxes%bc(n)%param(:))] given, need [num_parameters]"
-  !! \throw FATAL, "No params needed for [name] but has size of [size(gas_fluxes%bc(n)%param(:))]"
-  !! \throw FATAL, "Num_parameters is negative for [name]: [num_parameters]"
-  !! \throw FATAL, "No flag for [name]: need [num_flags]"
-  !! \throw FATAL, "Wrong number of flag for [name]: [size(gas_fluxes%bc(n)%flag(:))] given, need [num_flags]"
-  !! \throw FATAL, "No flags needed for [name] but has size of [size(gas_fluxes%bc(n)%flag(:))]"
-  !! \throw FATAL, "Num_flags is negative for [name]: [num_flags]"
-  !! \throw FATAL, "Problem dumping fluxes tracer tree"
-  !! \throw FATAL, "Number of fluxes does not match across the processors: [gas_fluxes%num_bcs] fluxes"
+  !! @throw FATAL, "Flux index, [ind] does not match array index, [n] for [name]"
+  !! @throw FATAL, "Problem changing to [name]"
+  !! @throw FATAL, "Undefined flux_type given for [name]: [gas_fluxes%bc(n)%flux_type]"
+  !! @throw FATAL, "Undefined implementation given for [name]:
+  !!                [gas_fluxes%bc(n)%flux_type]/implementation/[gas_fluxes%bc(n)%implementation]"
+  !! @throw FATAL, "No param for [name]: need [num_parameters]"
+  !! @throw FATAL, "Wrong number of param for [name]: [size(gas_fluxes%bc(n)%param(:))] given, need [num_parameters]"
+  !! @throw FATAL, "No params needed for [name] but has size of [size(gas_fluxes%bc(n)%param(:))]"
+  !! @throw FATAL, "Num_parameters is negative for [name]: [num_parameters]"
+  !! @throw FATAL, "No flag for [name]: need [num_flags]"
+  !! @throw FATAL, "Wrong number of flag for [name]: [size(gas_fluxes%bc(n)%flag(:))] given, need [num_flags]"
+  !! @throw FATAL, "No flags needed for [name] but has size of [size(gas_fluxes%bc(n)%flag(:))]"
+  !! @throw FATAL, "Num_flags is negative for [name]: [num_flags]"
+  !! @throw FATAL, "Problem dumping fluxes tracer tree"
+  !! @throw FATAL, "Number of fluxes does not match across the processors: [gas_fluxes%num_bcs] fluxes"
   subroutine atmos_ocean_fluxes_init(gas_fluxes, gas_fields_atm, gas_fields_ice, verbosity)
 
     type(coupler_1d_bc_type), intent(inout) :: gas_fluxes !< Structure containing the gas fluxes between
@@ -455,7 +465,7 @@ contains
     character(len=128)                      :: error_string
     character(len=128)                      :: flux_list
     logical, save                           :: initialized = .false.
-    integer :: verbose ! An integer indicating the level of verbosity.
+    integer :: verbose !< An integer indicating the level of verbosity.
 
     if (initialized) return
 
@@ -575,7 +585,8 @@ contains
 
       gas_fields_ice%bc(n)%name = name
       do m = 1, fm_util_get_length(trim(flux_list) // 'ice/name')
-        gas_fields_ice%bc(n)%field(m)%name = trim(name) // "_" // fm_util_get_string(trim(flux_list) // 'ice/name', index = m)
+        gas_fields_ice%bc(n)%field(m)%name = trim(name) // "_" // fm_util_get_string(trim(flux_list) // &
+                                        &  'ice/name', index = m)
         gas_fields_ice%bc(n)%field(m)%override = .false.
         gas_fields_ice%bc(n)%field(m)%mean     = .false.
       enddo
@@ -583,7 +594,8 @@ contains
       ! Save the units.
       do m = 1, fm_util_get_length(trim(flux_list) // 'flux/name')
         gas_fluxes%bc(n)%field(m)%units =&
-            & fm_util_get_string(trim(fm_util_get_string(trim(flux_list) // 'flux/name', index = m)) // '-units', scalar = .true.)
+            & fm_util_get_string(trim(fm_util_get_string(trim(flux_list) // 'flux/name', index = m)) // &
+            &  '-units', scalar = .true.)
       enddo
       do m = 1, fm_util_get_length(trim(flux_list) // 'atm/name')
         gas_fields_atm%bc(n)%field(m)%units =&
@@ -597,7 +609,8 @@ contains
       ! Save the long names.
       do m = 1, fm_util_get_length(trim(flux_list) // 'flux/name')
         gas_fluxes%bc(n)%field(m)%long_name =&
-            & fm_util_get_string(trim(fm_util_get_string(trim(flux_list) // 'flux/name', index = m)) // '-long_name', scalar = .true.)
+            & fm_util_get_string(trim(fm_util_get_string(trim(flux_list) // 'flux/name', index = m)) // &
+            &  '-long_name', scalar = .true.)
         gas_fluxes%bc(n)%field(m)%long_name = trim(gas_fluxes%bc(n)%field(m)%long_name) // ' for ' // name
       enddo
       do m = 1, fm_util_get_length(trim(flux_list) // 'atm/name')
@@ -644,7 +657,8 @@ contains
           call mpp_error(FATAL, trim(error_header) // ' No param for ' // trim(name) // trim(error_string))
         elseif (size(gas_fluxes%bc(n)%param(:)) .ne. num_parameters) then
           write (error_string,'(a,i2,a,i2)') ': ', size(gas_fluxes%bc(n)%param(:)), ' given, need ', num_parameters
-          call mpp_error(FATAL, trim(error_header) // ' Wrong number of param for ' // trim(name) // trim(error_string))
+          call mpp_error(FATAL, trim(error_header) // &
+                         &  ' Wrong number of param for ' // trim(name) // trim(error_string))
         endif
       elseif (num_parameters .eq. 0) then
         if (associated(gas_fluxes%bc(n)%param)) then
@@ -653,7 +667,8 @@ contains
         endif
       else
         write (error_string,'(a,i2)') ': ', num_parameters
-        call mpp_error(FATAL, trim(error_header) // 'Num_parameters is negative for ' // trim(name) // trim(error_string))
+        call mpp_error(FATAL, trim(error_header) // &
+                       &  'Num_parameters is negative for ' // trim(name) // trim(error_string))
       endif
       num_flags = fm_util_get_integer(trim(flux_list) // '/num_flags', scalar = .true.)
       if (num_flags .gt. 0) then
@@ -712,11 +727,10 @@ contains
     call fm_util_reset_caller
   end subroutine  atmos_ocean_fluxes_init
 
-  !> Initialize the coupler type flux tracers
-  !!
-  !! Initialize the /coupler_mod/types/ fields in the field manager.  These fields
+  !> @brief Initialize the coupler type flux tracers
+  !> Initialize the /coupler_mod/types/ fields in the field manager.  These fields
   !! include:
-  !! \verbatim
+  !! @verbatim
   !! air_sea_gas_flux_generic/
   !!                          implementation/
   !!                                         ocmip2/
@@ -842,47 +856,47 @@ contains
   !!                                'Concentration in land runoff'
   !!                      units/
   !!                            'mol/m^3'
-  !! \endverbatim
+  !! @endverbatim
   !!
-  !! \throw FATAL, "Could not set the \"coupler_mod\" list"
-  !! \throw FATAL, "Could not set the \"GOOD\" list"
-  !! \throw FATAL, "Could not set the \"/coupler_mod/fluxes\" list"
-  !! \throw FATAL, "Could not set the \"/coupler_mod/types\" list"
-  !! \throw FATAL, "Could not change to \"/coupler_mod/types\""
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux_generic\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux_generic\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux_generic/implementation\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux_generic/implementation/ocmip2\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux_generic/atm\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux_generic/ice\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux_generic/flux\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux/implementation\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux/implementation/ocmip2\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux/implementation/ocmip2_data\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux/implementation/linear\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux/atm\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux/ice\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_gas_flux/flux\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_deposition\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_deposition/implementation\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_deposition/implementation/dry\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_deposition/implementation/wet\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_deposition/atm\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_deposition/ice\" list"
-  !! \throw FATAL, "Could not set the \"air_sea_deposition/flux\" list"
-  !! \throw FATAL, "Could not set the \"land_sea_runoff\" list"
-  !! \throw FATAL, "Could not set the \"land_sea_runoff/implementation\" list"
-  !! \throw FATAL, "Could not set the \"land_sea_runoff/implementation/river\" list"
-  !! \throw FATAL, "Could not set the \"land_sea_runoff/atm\" list"
-  !! \throw FATAL, "Could not set the \"land_sea_runoff/ice\" list"
-  !! \throw FATAL, "Could not set the \"land_sea_runoff/flux\" list"
-  !! \throw FATAL, "Could not change to \"/\""
-  !! \throw FATAL, "Problem dumping /coupler_mod/types tree"
+  !! @throw FATAL, Could not set the \coupler_mod\ list
+  !! @throw FATAL, Could not set the \GOOD\ list
+  !! @throw FATAL, Could not set the \/coupler_mod/fluxes\ list
+  !! @throw FATAL, Could not set the \/coupler_mod/types\ list
+  !! @throw FATAL, Could not change to \/coupler_mod/types\
+  !! @throw FATAL, Could not set the \air_sea_gas_flux_generic\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux_generic\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux_generic/implementation\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux_generic/implementation/ocmip2\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux_generic/atm\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux_generic/ice\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux_generic/flux\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux/implementation\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux/implementation/ocmip2\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux/implementation/ocmip2_data\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux/implementation/linear\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux/atm\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux/ice\ list
+  !! @throw FATAL, Could not set the \air_sea_gas_flux/flux\ list
+  !! @throw FATAL, Could not set the \air_sea_deposition\ list
+  !! @throw FATAL, Could not set the \air_sea_deposition/implementation\ list
+  !! @throw FATAL, Could not set the \air_sea_deposition/implementation/dry\ list
+  !! @throw FATAL, Could not set the \air_sea_deposition/implementation/wet\ list
+  !! @throw FATAL, Could not set the \air_sea_deposition/atm\ list
+  !! @throw FATAL, Could not set the \air_sea_deposition/ice\ list
+  !! @throw FATAL, Could not set the \air_sea_deposition/flux\ list
+  !! @throw FATAL, Could not set the \land_sea_runoff\ list
+  !! @throw FATAL, Could not set the \land_sea_runoff/implementation\ list
+  !! @throw FATAL, Could not set the \land_sea_runoff/implementation/river\ list
+  !! @throw FATAL, Could not set the \land_sea_runoff/atm\ list
+  !! @throw FATAL, Could not set the \land_sea_runoff/ice\ list
+  !! @throw FATAL, Could not set the \land_sea_runoff/flux\ list
+  !! @throw FATAL, Could not change to \/\
+  !! @throw FATAL, Problem dumping /coupler_mod/types tree
   subroutine atmos_ocean_type_fluxes_init(verbosity)
     integer, intent(in), optional :: verbosity  !< A 0-9 integer indicating a level of verbosity.
 
-    integer :: verbose ! An integer indicating the level of verbosity.
+    integer :: verbose !< An integer indicating the level of verbosity.
     integer :: outunit
     character(len=*), parameter :: sub_name = 'atmos_ocean_type_fluxes_init'
     character(len=*), parameter :: caller_str =&
@@ -953,7 +967,8 @@ contains
     call fm_util_set_value('air_sea_gas_flux_generic/implementation/duce/num_parameters', 1)
 
     if (fm_new_list('air_sea_gas_flux_generic/implementation/johnson') .le. 0) then
-      call mpp_error(FATAL, trim(error_header) // ' Could not set the "air_sea_gas_flux_generic/implementation/johnson" list')
+      call mpp_error(FATAL, trim(error_header) // &
+                     &  ' Could not set the "air_sea_gas_flux_generic/implementation/johnson" list')
     endif
     call fm_util_set_value('air_sea_gas_flux_generic/implementation/johnson/num_parameters', 2)
 
@@ -1034,7 +1049,8 @@ contains
     endif
     call fm_util_set_value('air_sea_gas_flux/implementation/ocmip2/num_parameters', 2)
     if (fm_new_list('air_sea_gas_flux/implementation/ocmip2_data') .le. 0) then
-      call mpp_error(FATAL, trim(error_header) // ' Could not set the "air_sea_gas_flux/implementation/ocmip2_data" list')
+      call mpp_error(FATAL, trim(error_header) // &
+                     &  ' Could not set the "air_sea_gas_flux/implementation/ocmip2_data" list')
     endif
     call fm_util_set_value('air_sea_gas_flux/implementation/ocmip2_data/num_parameters', 2)
     if (fm_new_list('air_sea_gas_flux/implementation/linear') .le. 0) then
@@ -1070,13 +1086,15 @@ contains
       call mpp_error(FATAL, trim(error_header) // ' Could not set the "air_sea_gas_flux/ice" list')
     endif
 
-    call fm_util_set_value('air_sea_gas_flux/ice/name',      'alpha',                                                index = ind_alpha)
-    call fm_util_set_value('air_sea_gas_flux/ice/long_name', 'Solubility from atmosphere times Schmidt number term', index = ind_alpha)
-    call fm_util_set_value('air_sea_gas_flux/ice/units',     'mol/m^3/atm',                                          index = ind_alpha)
+    call fm_util_set_value('air_sea_gas_flux/ice/name', 'alpha', index = ind_alpha)
+    call fm_util_set_value('air_sea_gas_flux/ice/long_name', &
+                          &  'Solubility from atmosphere times Schmidt number term', index = ind_alpha)
+    call fm_util_set_value('air_sea_gas_flux/ice/units', 'mol/m^3/atm', index = ind_alpha)
 
-    call fm_util_set_value('air_sea_gas_flux/ice/name',      'csurf',                                         index = ind_csurf)
-    call fm_util_set_value('air_sea_gas_flux/ice/long_name', 'Ocean concentration times Schmidt number term', index = ind_csurf)
-    call fm_util_set_value('air_sea_gas_flux/ice/units',     'mol/m^3',                                       index = ind_csurf)
+    call fm_util_set_value('air_sea_gas_flux/ice/name', 'csurf', index = ind_csurf)
+    call fm_util_set_value('air_sea_gas_flux/ice/long_name', 'Ocean concentration times Schmidt number term', &
+                          &  index = ind_csurf)
+    call fm_util_set_value('air_sea_gas_flux/ice/units', 'mol/m^3', index = ind_csurf)
 
     ! Add the flux output field(s).
     if (fm_new_list('air_sea_gas_flux/flux') .le. 0) then
@@ -1211,3 +1229,5 @@ contains
     return
   end subroutine atmos_ocean_type_fluxes_init
 end module  atmos_ocean_fluxes_mod
+!> @}
+! close documentation grouping
